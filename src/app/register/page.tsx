@@ -27,8 +27,8 @@ export default function Register() {
   const roles = [
     { value: 'VICTIM', label: 'Victim/Citizen' },
     { value: 'POLICE_OFFICER', label: 'Police Officer' },
-    { value: 'BANK_OFFICER', label: 'Bank Officer' },
-    { value: 'NODAL_OFFICER', label: 'Nodal Officer' }
+    { value: 'NODAL_OFFICER', label: 'Nodal Officer' },
+    { value: 'BANK_OFFICER', label: 'Bank Officer' }
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +105,7 @@ export default function Register() {
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
           <CardTitle className="text-2xl">Register</CardTitle>
-          <CardDescription>Create your account for Odisha Police Cyber Fraud System</CardDescription>
+          <CardDescription>Create your account for Cyber Fraud Support System</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

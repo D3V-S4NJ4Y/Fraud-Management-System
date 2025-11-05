@@ -1,46 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase-client'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, complaintId, title, message, type, channel, scheduledAt } = body
-
-    if (!title || !message || !type || !channel) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    const notification = await db.notification.create({
-      data: {
-        userId,
-        complaintId,
-        title,
+    const { complaintId, type, message, recipient } = body
+    
+    const notificationId = `NT${new Date().getFullYear()}${Date.now().toString().slice(-6)}`
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        notification_id: notificationId,
+        complaint_id: complaintId,
+        type, // SMS, EMAIL, PUSH
         message,
-        type,
-        channel,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        status: 'PENDING'
-      }
-    })
+        recipient,
+        status: 'SENT',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single()
 
-    if (channel === 'EMAIL' && !scheduledAt) {
-      await sendEmailNotification(notification)
-    } else if (channel === 'SMS' && !scheduledAt) {
-      await sendSMSNotification(notification)
-    }
+    if (error) throw error
+
+    // Simulate sending notification
+    await sendNotification(type, recipient, message)
 
     return NextResponse.json({
       success: true,
-      data: notification,
-      message: 'Notification created successfully'
+      data,
+      message: 'Notification sent successfully'
     })
   } catch (error) {
-    console.error('Error creating notification:', error)
+    console.error('Error sending notification:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create notification' },
+      { success: false, error: 'Failed to send notification' },
       { status: 500 }
     )
   }
@@ -49,46 +44,21 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
     const complaintId = searchParams.get('complaintId')
-    const status = searchParams.get('status')
-    const limit = parseInt(searchParams.get('limit') || '10')
-
-    let whereClause: any = {}
     
-    if (userId) whereClause.userId = userId
-    if (complaintId) whereClause.complaintId = complaintId
-    if (status) whereClause.status = status
-
-    const notifications = await db.notification.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true
-          }
-        },
-        complaint: {
-          select: {
-            id: true,
-            complaintId: true,
-            victimName: true,
-            status: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: limit
-    })
-
+    let query = supabase.from('notifications').select('*')
+    
+    if (complaintId) {
+      query = query.eq('complaint_id', complaintId)
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
     return NextResponse.json({
       success: true,
-      data: notifications
+      data: data || []
     })
   } catch (error) {
     console.error('Error fetching notifications:', error)
@@ -99,71 +69,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function sendEmailNotification(notification: any) {
-  try {
-    console.log(`Sending email notification: ${notification.title}`)
-    console.log(`To: ${notification.user?.email}`)
-    console.log(`Message: ${notification.message}`)
-    
-    await db.notification.update({
-      where: { id: notification.id },
-      data: {
-        status: 'SENT',
-        sentAt: new Date()
-      }
-    })
-
-    const ZAI = await import('z-ai-web-dev-sdk').then(m => m.default)
-    const zai = await ZAI.create()
-    
-    try {
-      await zai.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a cyber fraud support assistant. Generate professional and empathetic email notifications for victims of cyber fraud.'
-          },
-          {
-            role: 'user',
-            content: `Generate a professional email notification with the following details:
-            Subject: ${notification.title}
-            Message: ${notification.message}
-            Recipient: ${notification.user?.name}
-            
-            Make it empathetic, professional, and include helpful guidance.`
-          }
-        ]
-      })
-    } catch (aiError) {
-      console.error('AI email generation failed:', aiError)
-    }
-  } catch (error) {
-    console.error('Error sending email notification:', error)
-    await db.notification.update({
-      where: { id: notification.id },
-      data: { status: 'FAILED' }
-    })
-  }
-}
-
-async function sendSMSNotification(notification: any) {
-  try {
-    console.log(`Sending SMS notification: ${notification.title}`)
-    console.log(`To: ${notification.user?.phone}`)
-    console.log(`Message: ${notification.message}`)
-    
-    await db.notification.update({
-      where: { id: notification.id },
-      data: {
-        status: 'SENT',
-        sentAt: new Date()
-      }
-    })
-  } catch (error) {
-    console.error('Error sending SMS notification:', error)
-    await db.notification.update({
-      where: { id: notification.id },
-      data: { status: 'FAILED' }
-    })
-  }
+async function sendNotification(type: string, recipient: string, message: string) {
+  console.log(`${type} NOTIFICATION SENT:`)
+  console.log(`To: ${recipient}`)
+  console.log(`Message: ${message}`)
+  console.log(`Timestamp: ${new Date().toISOString()}`)
+  
+  // In real implementation, integrate with:
+  // - SMS gateway (Twilio, AWS SNS)
+  // - Email service (SendGrid, AWS SES)
+  // - Push notification service
 }

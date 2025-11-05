@@ -1,88 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase-client'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const period = searchParams.get('period') || 'month'
-    
-    let startDate = new Date()
-    if (period === 'week') {
-      startDate.setDate(startDate.getDate() - 7)
-    } else if (period === 'month') {
-      startDate.setMonth(startDate.getMonth() - 1)
-    } else if (period === 'year') {
-      startDate.setFullYear(startDate.getFullYear() - 1)
-    }
+    // Get all complaints for analytics
+    const { data: complaints, error } = await supabase
+      .from('complaints')
+      .select('*')
 
-    const complaints = await db.complaint.findMany({
-      where: {
-        createdAt: {
-          gte: startDate
-        }
-      },
-      include: {
-        bankActions: true,
-        refunds: true
-      }
-    })
+    if (error) throw error
 
+    // Calculate analytics
     const totalComplaints = complaints.length
-    const totalAmount = complaints.reduce((sum, c) => sum + c.fraudAmount, 0)
+    const totalAmount = complaints.reduce((sum, c) => sum + (c.fraud_amount || 0), 0)
     
-    const statusCounts = complaints.reduce((acc, complaint) => {
-      acc[complaint.status] = (acc[complaint.status] || 0) + 1
+    // Status distribution
+    const statusCounts = complaints.reduce((acc, c) => {
+      acc[c.status] = (acc[c.status] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    const fraudTypeCounts = complaints.reduce((acc, complaint) => {
-      acc[complaint.fraudType] = (acc[complaint.fraudType] || 0) + 1
+    // Fraud type analysis
+    const fraudTypes = complaints.reduce((acc, c) => {
+      acc[c.fraud_type] = (acc[c.fraud_type] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    const districtCounts = complaints.reduce((acc, complaint) => {
-      if (complaint.district) {
-        acc[complaint.district] = (acc[complaint.district] || 0) + 1
+    // Amount recovery
+    const refundedComplaints = complaints.filter(c => c.status === 'REFUNDED')
+    const refundedAmount = refundedComplaints.reduce((sum, c) => sum + (c.fraud_amount || 0), 0)
+    const recoveryRate = totalAmount > 0 ? (refundedAmount / totalAmount) * 100 : 0
+
+    // Turnaround time analysis
+    const resolvedComplaints = complaints.filter(c => 
+      ['REFUNDED', 'CLOSED'].includes(c.status)
+    )
+    
+    const avgTurnaroundTime = resolvedComplaints.length > 0 
+      ? resolvedComplaints.reduce((sum, c) => {
+          const created = new Date(c.created_at)
+          const updated = new Date(c.updated_at)
+          return sum + (updated.getTime() - created.getTime())
+        }, 0) / resolvedComplaints.length / (1000 * 60 * 60 * 24) // Convert to days
+      : 0
+
+    // Monthly trends
+    const monthlyData = complaints.reduce((acc, c) => {
+      const month = new Date(c.created_at).toISOString().slice(0, 7) // YYYY-MM
+      if (!acc[month]) {
+        acc[month] = { count: 0, amount: 0 }
       }
+      acc[month].count++
+      acc[month].amount += c.fraud_amount || 0
       return acc
-    }, {} as Record<string, number>)
-
-    const bankActions = complaints.flatMap(c => c.bankActions)
-    const refunds = complaints.flatMap(c => c.refunds)
-
-    const totalRefunded = refunds
-      .filter(r => r.status === 'COMPLETED')
-      .reduce((sum, r) => sum + r.amount, 0)
-
-    const totalFrozen = bankActions
-      .filter(ba => ba.status === 'COMPLETED')
-      .reduce((sum, ba) => sum + (ba.amount || 0), 0)
-
-    const recoveryRate = totalAmount > 0 ? (totalRefunded / totalAmount) * 100 : 0
-
-    const avgResolutionTime = complaints
-      .filter(c => c.status === 'CLOSED' || c.status === 'REFUNDED')
-      .reduce((sum, c) => {
-        const resolutionTime = new Date().getTime() - new Date(c.createdAt).getTime()
-        return sum + resolutionTime
-      }, 0) / Math.max(1, complaints.filter(c => c.status === 'CLOSED' || c.status === 'REFUNDED').length)
-
-    const dailyStats = []
-    for (let i = 0; i < 30; i++) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      
-      const dayComplaints = complaints.filter(c => 
-        c.createdAt.toISOString().split('T')[0] === dateStr
-      )
-      
-      dailyStats.push({
-        date: dateStr,
-        complaints: dayComplaints.length,
-        amount: dayComplaints.reduce((sum, c) => sum + c.fraudAmount, 0)
-      })
-    }
+    }, {} as Record<string, { count: number, amount: number }>)
 
     return NextResponse.json({
       success: true,
@@ -90,16 +61,19 @@ export async function GET(request: NextRequest) {
         overview: {
           totalComplaints,
           totalAmount,
-          totalRefunded,
-          totalFrozen,
+          refundedAmount,
           recoveryRate: Math.round(recoveryRate * 100) / 100,
-          avgResolutionTime: Math.round(avgResolutionTime / (1000 * 60 * 60 * 24))
+          avgTurnaroundTime: Math.round(avgTurnaroundTime * 100) / 100
         },
-        statusBreakdown: statusCounts,
-        fraudTypeBreakdown: fraudTypeCounts,
-        districtBreakdown: districtCounts,
-        dailyStats: dailyStats.reverse(),
-        period
+        statusDistribution: statusCounts,
+        fraudTypeAnalysis: fraudTypes,
+        monthlyTrends: monthlyData,
+        performanceMetrics: {
+          pendingCases: statusCounts['PENDING'] || 0,
+          inProgressCases: statusCounts['IN_PROGRESS'] || 0,
+          resolvedCases: resolvedComplaints.length,
+          resolutionRate: totalComplaints > 0 ? (resolvedComplaints.length / totalComplaints) * 100 : 0
+        }
       }
     })
   } catch (error) {

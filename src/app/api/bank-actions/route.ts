@@ -1,85 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase-client'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { complaintId, bankName, branchName, accountNumber, actionType, amount, notes } = body
-
-    if (!complaintId || !bankName || !accountNumber || !actionType) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    const complaint = await db.complaint.findUnique({
-      where: { complaintId }
-    })
-
-    if (!complaint) {
-      return NextResponse.json(
-        { success: false, error: 'Complaint not found' },
-        { status: 404 }
-      )
-    }
-
-    const bankAction = await db.bankAction.create({
-      data: {
-        complaintId: complaint.id,
-        bankName,
-        branchName,
-        accountNumber,
-        actionType,
+    
+    const actionId = `BA${new Date().getFullYear()}${Date.now().toString().slice(-6)}`
+    
+    const { data, error } = await supabase
+      .from('bank_actions')
+      .insert({
+        action_id: actionId,
+        complaint_id: complaintId,
+        bank_name: bankName,
+        branch_name: branchName,
+        account_number: accountNumber,
+        action_type: actionType,
         amount: amount ? parseFloat(amount) : null,
         notes,
         status: 'PENDING',
-        referenceNumber: `BA${new Date().getFullYear()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`
-      }
-    })
-
-    await db.caseUpdate.create({
-      data: {
-        complaintId: complaint.id,
-        title: 'Bank Action Requested',
-        description: `${actionType} request sent to ${bankName} for account ${accountNumber}`,
-        status: 'BANK_FREEZE_REQUESTED',
-        updatedBy: 'System'
-      }
-    })
-
-    await db.complaint.update({
-      where: { id: complaint.id },
-      data: { status: 'BANK_FREEZE_REQUESTED' }
-    })
-
-    await db.notification.create({
-      data: {
-        complaintId: complaint.id,
-        title: 'Bank Action Initiated',
-        message: `${actionType} request has been sent to ${bankName}. Reference: ${bankAction.referenceNumber}`,
-        type: 'BANK_ACTION',
-        channel: 'EMAIL',
-        status: 'PENDING'
-      }
-    })
-
-    const zai = await import('z-ai-web-dev-sdk').then(m => m.default)
-    const ai = await zai.create()
-    
-    try {
-      await ai.functions.invoke('web_search', {
-        query: `${bankName} cyber fraud department contact information ${complaint.district}`,
-        num: 5
+        requested_by: 'Police Officer',
+        created_at: new Date().toISOString()
       })
-    } catch (searchError) {
-      console.error('Bank contact search failed:', searchError)
-    }
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Send automated alert to bank (simulated)
+    await sendBankAlert(bankName, actionType, complaintId)
 
     return NextResponse.json({
       success: true,
-      data: bankAction,
-      message: 'Bank action requested successfully'
+      data,
+      message: 'Bank action initiated successfully'
     })
   } catch (error) {
     console.error('Error creating bank action:', error)
@@ -90,63 +45,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { actionId, status, referenceNumber, notes } = body
-
-    if (!actionId || !status) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
+    const { searchParams } = new URL(request.url)
+    const complaintId = searchParams.get('complaintId')
+    
+    let query = supabase.from('bank_actions').select('*')
+    
+    if (complaintId) {
+      query = query.eq('complaint_id', complaintId)
     }
-
-    const bankAction = await db.bankAction.update({
-      where: { id: actionId },
-      data: {
-        status,
-        referenceNumber: referenceNumber || undefined,
-        notes: notes || undefined,
-        completedAt: status === 'COMPLETED' ? new Date() : undefined
-      },
-      include: {
-        complaint: true
-      }
-    })
-
-    let newComplaintStatus = bankAction.complaint.status
-    if (status === 'COMPLETED') {
-      newComplaintStatus = 'FUNDS_FROZEN'
-    } else if (status === 'FAILED') {
-      newComplaintStatus = 'UNDER_INVESTIGATION'
-    }
-
-    await db.complaint.update({
-      where: { id: bankAction.complaint.id },
-      data: { status: newComplaintStatus }
-    })
-
-    await db.caseUpdate.create({
-      data: {
-        complaintId: bankAction.complaint.id,
-        title: 'Bank Action Updated',
-        description: `Bank action ${bankAction.actionType} status updated to ${status}`,
-        status: newComplaintStatus,
-        updatedBy: 'Bank Officer'
-      }
-    })
-
+    
+    const { data, error } = await query.order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
     return NextResponse.json({
       success: true,
-      data: bankAction,
-      message: 'Bank action updated successfully'
+      data: data || []
     })
   } catch (error) {
-    console.error('Error updating bank action:', error)
+    console.error('Error fetching bank actions:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update bank action' },
+      { success: false, error: 'Failed to fetch bank actions' },
       { status: 500 }
     )
   }
+}
+
+async function sendBankAlert(bankName: string, actionType: string, complaintId: string) {
+  // Simulate automated bank alert
+  console.log(`AUTOMATED ALERT SENT TO ${bankName}:`)
+  console.log(`Action: ${actionType}`)
+  console.log(`Complaint ID: ${complaintId}`)
+  console.log(`Timestamp: ${new Date().toISOString()}`)
+  
+  // In real implementation, this would integrate with:
+  // - RBI frameworks
+  // - NPCI systems
+  // - Bank APIs
+  // - Email/SMS services
 }

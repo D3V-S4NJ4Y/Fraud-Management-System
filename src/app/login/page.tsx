@@ -66,7 +66,7 @@ export default function Login() {
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Sign in to Odisha Police Cyber Fraud System</CardDescription>
+          <CardDescription>Sign in to Cyber Fraud Support System</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

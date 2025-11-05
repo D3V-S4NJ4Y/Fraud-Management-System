@@ -117,6 +117,9 @@ function HomeContent() {
     victimName: '',
     victimEmail: '',
     victimPhone: '',
+    victimAddress: '',
+    victimState: '',
+    victimGender: '',
     fraudType: '',
     otherFraudType: '',
     fraudAmount: '',
@@ -235,7 +238,7 @@ function HomeContent() {
   }
 
   const handleSubmitComplaint = async () => {
-    if (!formData.victimName || !formData.victimEmail || !formData.victimPhone || !formData.fraudType || !formData.fraudAmount || !formData.fraudDate || !formData.fraudDescription || !formData.district) {
+    if (!formData.victimName || !formData.victimEmail || !formData.victimPhone || !formData.victimAddress || !formData.victimState || !formData.victimGender || !formData.fraudType || !formData.fraudAmount || !formData.fraudDate || !formData.fraudDescription || !formData.district) {
       alert('Please fill in all required fields')
       return
     }
@@ -296,6 +299,9 @@ function HomeContent() {
           victimName: '',
           victimEmail: '',
           victimPhone: '',
+          victimAddress: '',
+          victimState: '',
+          victimGender: '',
           fraudType: '',
           otherFraudType: '',
           fraudAmount: '',
@@ -338,7 +344,7 @@ function HomeContent() {
             <div className="flex items-center space-x-3">
               <Shield className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Odisha Police Cyber Fraud Support</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Cyber Fraud Support System</h1>
                 <p className="text-sm text-gray-600">Victim Support & Tracking System</p>
               </div>
             </div>
@@ -349,15 +355,15 @@ function HomeContent() {
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Mail className="h-4 w-4" />
-                <span>cyber@odishapolice.gov.in</span>
+                <span>cybercrime@police.gov.in</span>
               </div>
               {mounted && (
                 user ? (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Welcome, {user.name}</span>
                     {(user.role === 'ADMIN' || user.role === 'POLICE_OFFICER' || user.role === 'NODAL_OFFICER') && (
-                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/admin'}>
-                        Admin Panel
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/police'}>
+                        Police Panel
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={logout}>
@@ -721,29 +727,76 @@ function HomeContent() {
                   )}
 
                   <div>
-                    <h4 className="font-medium mb-2">Case Timeline</h4>
+                    <h4 className="font-medium mb-2">Case Timeline & Real-time Updates</h4>
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <CheckCircle className="h-5 w-5 text-green-500" />
                         <div>
                           <p className="text-sm font-medium">Complaint Registered</p>
-                          <p className="text-xs text-gray-500">{new Date(selectedComplaint.createdAt || selectedComplaint.created_at).toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">{new Date(selectedComplaint.createdAt || selectedComplaint.created_at || '').toLocaleString()}</p>
+                          <p className="text-xs text-blue-600">1930 Helpline: {selectedComplaint.helpline1930Id || selectedComplaint.helpline_1930_id || 'Pending'}</p>
                         </div>
                       </div>
+                      
+                      {(selectedComplaint.cfccrmsId || selectedComplaint.cfccrms_id) && (
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="text-sm font-medium">CFCFRMS Registration</p>
+                            <p className="text-xs text-blue-600">ID: {selectedComplaint.cfccrmsId || selectedComplaint.cfccrms_id}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {(selectedComplaint.firNumber || selectedComplaint.fir_number) && (
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="text-sm font-medium">FIR Filed</p>
+                            <p className="text-xs text-gray-500">{selectedComplaint.firDate || selectedComplaint.fir_date}</p>
+                            <p className="text-xs text-blue-600">FIR: {selectedComplaint.firNumber || selectedComplaint.fir_number}</p>
+                            <p className="text-xs text-blue-600">Officer: {selectedComplaint.assignedOfficer || selectedComplaint.assigned_officer}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedComplaint.status === 'BANK_FREEZE_REQUESTED' && (
+                        <div className="flex items-center space-x-3">
+                          <Clock className="h-5 w-5 text-orange-500" />
+                          <div>
+                            <p className="text-sm font-medium">Nodal Officer Assigned</p>
+                            <p className="text-xs text-gray-500">Financial coordination in progress</p>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        {selectedComplaint.status === 'REFUNDED' ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : selectedComplaint.status === 'CLOSED' ? (
+                          <CheckCircle className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <Clock className="h-5 w-5 text-blue-500" />
+                        )}
                         <div>
-                          <p className="text-sm font-medium">FIR Filed</p>
-                          <p className="text-xs text-gray-500">{selectedComplaint.firDate || selectedComplaint.fir_date}</p>
+                          <p className="text-sm font-medium">Status: {selectedComplaint.status.replace('_', ' ')}</p>
+                          <p className="text-xs text-gray-500">Updated: {new Date(selectedComplaint.updatedAt || selectedComplaint.updated_at || '').toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <Clock className="h-5 w-5 text-blue-500" />
-                        <div>
-                          <p className="text-sm font-medium">Under Investigation</p>
-                          <p className="text-xs text-gray-500">In progress</p>
+                      
+                      {selectedComplaint.status === 'FUNDS_FROZEN' && (
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <p className="text-sm font-medium text-blue-800">✓ Bank Action Completed</p>
+                          <p className="text-xs text-blue-600">Funds frozen. Refund process starting.</p>
                         </div>
-                      </div>
+                      )}
+                      
+                      {selectedComplaint.status === 'REFUND_PROCESSING' && (
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <p className="text-sm font-medium text-green-800">💰 Refund in Progress</p>
+                          <p className="text-xs text-green-600">SMS/Email updates will be sent.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -800,6 +853,75 @@ function HomeContent() {
                       />
                     </div>
                     <div>
+                      <Label htmlFor="victimGender">Gender *</Label>
+                      <Select value={formData.victimGender} onValueChange={(value) => setFormData({...formData, victimGender: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="victimAddress">Address *</Label>
+                      <Input
+                        id="victimAddress"
+                        value={formData.victimAddress}
+                        onChange={(e) => setFormData({...formData, victimAddress: e.target.value})}
+                        placeholder="Enter your complete address"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="victimState">State *</Label>
+                      <Select value={formData.victimState} onValueChange={(value) => setFormData({...formData, victimState: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Andhra Pradesh">Andhra Pradesh</SelectItem>
+                          <SelectItem value="Arunachal Pradesh">Arunachal Pradesh</SelectItem>
+                          <SelectItem value="Assam">Assam</SelectItem>
+                          <SelectItem value="Bihar">Bihar</SelectItem>
+                          <SelectItem value="Chhattisgarh">Chhattisgarh</SelectItem>
+                          <SelectItem value="Goa">Goa</SelectItem>
+                          <SelectItem value="Gujarat">Gujarat</SelectItem>
+                          <SelectItem value="Haryana">Haryana</SelectItem>
+                          <SelectItem value="Himachal Pradesh">Himachal Pradesh</SelectItem>
+                          <SelectItem value="Jharkhand">Jharkhand</SelectItem>
+                          <SelectItem value="Karnataka">Karnataka</SelectItem>
+                          <SelectItem value="Kerala">Kerala</SelectItem>
+                          <SelectItem value="Madhya Pradesh">Madhya Pradesh</SelectItem>
+                          <SelectItem value="Maharashtra">Maharashtra</SelectItem>
+                          <SelectItem value="Manipur">Manipur</SelectItem>
+                          <SelectItem value="Meghalaya">Meghalaya</SelectItem>
+                          <SelectItem value="Mizoram">Mizoram</SelectItem>
+                          <SelectItem value="Nagaland">Nagaland</SelectItem>
+                          <SelectItem value="Odisha">Odisha</SelectItem>
+                          <SelectItem value="Punjab">Punjab</SelectItem>
+                          <SelectItem value="Rajasthan">Rajasthan</SelectItem>
+                          <SelectItem value="Sikkim">Sikkim</SelectItem>
+                          <SelectItem value="Tamil Nadu">Tamil Nadu</SelectItem>
+                          <SelectItem value="Telangana">Telangana</SelectItem>
+                          <SelectItem value="Tripura">Tripura</SelectItem>
+                          <SelectItem value="Uttar Pradesh">Uttar Pradesh</SelectItem>
+                          <SelectItem value="Uttarakhand">Uttarakhand</SelectItem>
+                          <SelectItem value="West Bengal">West Bengal</SelectItem>
+                          <SelectItem value="Delhi">Delhi</SelectItem>
+                          <SelectItem value="Chandigarh">Chandigarh</SelectItem>
+                          <SelectItem value="Puducherry">Puducherry</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <Label htmlFor="fraudType">Fraud Type *</Label>
                       <Select value={formData.fraudType} onValueChange={(value) => setFormData({...formData, fraudType: value})}>
                         <SelectTrigger>
@@ -813,6 +935,15 @@ function HomeContent() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="district">District *</Label>
+                      <Input
+                        id="district"
+                        value={formData.district}
+                        onChange={(e) => setFormData({...formData, district: e.target.value})}
+                        placeholder="Enter district"
+                      />
                     </div>
                   </div>
                   
@@ -994,7 +1125,7 @@ function HomeContent() {
                     <p>• Police Emergency: 100</p>
                     <p>• Women Helpline: 1091</p>
                     <p>• Child Helpline: 1098</p>
-                    <p>• Odisha Police: 112</p>
+                    <p>• Police Emergency: 112</p>
                   </div>
                 </CardContent>
               </Card>

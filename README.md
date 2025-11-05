@@ -1,6 +1,6 @@
-# Odisha Police Cyber Fraud Victim Support & Tracking System
+# India Cyber Fraud Victim Support & Tracking System
 
-A comprehensive, citizen-centric digital platform to provide end-to-end tracking of complaints, FIRs, and refund processes for victims of cyber fraud in Odisha.
+A comprehensive, citizen-centric digital platform to provide end-to-end tracking of complaints, FIRs, and refund processes for victims of cyber fraud across India.
 
 ## 🚀 Features
 
@@ -73,7 +73,7 @@ src/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd odisha-police-cyber-fraud-system
+   cd india-cyber-fraud-system
    ```
 
 2. **Install dependencies**
@@ -184,7 +184,7 @@ The system leverages AI for:
 ## 📞 Support & Contact
 
 - **Cyber Crime Helpline**: 1930
-- **Email**: cyber@odishapolice.gov.in
+- **Email**: cybercrime@police.gov.in
 - **Emergency**: 112
 - **Women Helpline**: 1091
 - **Child Helpline**: 1098
@@ -199,12 +199,12 @@ The system is designed for easy deployment:
 
 ## 📝 License
 
-This project is proprietary to Odisha Police and is not open source.
+This project is developed for Indian Police and is not open source.
 
 ## 🤝 Contributing
 
-This is a government project. Please contact the Odisha Police Cyber Cell for any contributions or suggestions.
+This is a government project. Please contact the Indian Police Cyber Cell for any contributions or suggestions.
 
 ---
 
-**Built with ❤️ for the citizens of Odisha by Odisha Police Cyber Crime Division**
+**Built with ❤️ for the citizens of India by Indian Police Cyber Crime Division**

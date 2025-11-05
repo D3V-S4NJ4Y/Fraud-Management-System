@@ -1,23 +1,28 @@
--- Add new columns to existing Complaint table
-ALTER TABLE "Complaint" 
-ADD COLUMN IF NOT EXISTS "otherFraudType" TEXT,
-ADD COLUMN IF NOT EXISTS "ifscCode" TEXT,
-ADD COLUMN IF NOT EXISTS "documentUrl" TEXT;
+-- Add new columns to existing complaints table
+-- Run this in Supabase SQL Editor if you want to keep existing data
 
--- Also add to complaints table (snake_case version)
 ALTER TABLE complaints 
-ADD COLUMN IF NOT EXISTS other_fraud_type TEXT,
-ADD COLUMN IF NOT EXISTS ifsc_code TEXT,
-ADD COLUMN IF NOT EXISTS document_url TEXT;
+ADD COLUMN IF NOT EXISTS victim_address TEXT,
+ADD COLUMN IF NOT EXISTS victim_state TEXT,
+ADD COLUMN IF NOT EXISTS victim_gender TEXT;
 
--- Create storage bucket for complaint documents
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('complaint-documents', 'complaint-documents', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Set up storage policies
-CREATE POLICY "Allow public uploads" ON storage.objects
-FOR INSERT WITH CHECK (bucket_id = 'complaint-documents');
-
-CREATE POLICY "Allow public downloads" ON storage.objects
-FOR SELECT USING (bucket_id = 'complaint-documents');
+-- Update existing records with sample data (optional)
+UPDATE complaints 
+SET 
+    victim_address = CASE 
+        WHEN complaint_id = 'CF2025764719' THEN '123 MG Road, Andheri'
+        WHEN complaint_id = 'CF2025764720' THEN '456 CP Road, Karol Bagh'
+        WHEN complaint_id = 'CF2025764721' THEN '789 Steel City, Sector 1'
+        ELSE 'Address not provided'
+    END,
+    victim_state = CASE 
+        WHEN complaint_id = 'CF2025764719' THEN 'Maharashtra'
+        WHEN complaint_id = 'CF2025764720' THEN 'Delhi'
+        WHEN complaint_id = 'CF2025764721' THEN 'Odisha'
+        ELSE 'State not provided'
+    END,
+    victim_gender = CASE 
+        WHEN victim_name LIKE '%Priya%' THEN 'Female'
+        ELSE 'Male'
+    END
+WHERE victim_address IS NULL;
