@@ -14,6 +14,11 @@ export async function POST(request: NextRequest) {
 
     const { email, password, name, phone, role } = body
 
+    // Only allow victim registration through this endpoint
+    if (role !== 'VICTIM') {
+      return NextResponse.json({ success: false, error: 'Only victims can register directly. Officers must submit applications.' }, { status: 400 })
+    }
+
     // Check if user exists in Supabase
     const { data: existingUsers, error: checkError } = await supabase
       .from('users')

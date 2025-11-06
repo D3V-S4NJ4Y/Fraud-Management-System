@@ -2,6 +2,7 @@
 -- Run this in Supabase SQL Editor
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS applications CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS case_updates CASCADE;
 DROP TABLE IF EXISTS refunds CASCADE;
@@ -17,10 +18,34 @@ CREATE TABLE users (
     name TEXT,
     phone TEXT,
     role TEXT DEFAULT 'VICTIM',
-    is_active BOOLEAN DEFAULT true,
+    is_active BOOLEAN DEFAULT false,
     last_login TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create applications table for role approval
+CREATE TABLE applications (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    application_id TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    password TEXT,
+    role TEXT NOT NULL,
+    state TEXT,
+    district TEXT,
+    police_station TEXT,
+    department TEXT,
+    designation TEXT,
+    experience TEXT,
+    id_card_url TEXT,
+    document_url TEXT,
+    reason TEXT,
+    status TEXT DEFAULT 'PENDING',
+    reviewed_by TEXT,
+    reviewed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Create complaints table
@@ -114,14 +139,18 @@ CREATE TABLE notifications (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Insert sample users
+-- Insert sample users (only approved users)
 INSERT INTO users (email, password, name, phone, role, is_active) VALUES
-('admin@police.gov.in', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2', 'System Administrator', '+91 9876543210', 'ADMIN', true),
 ('police@cybercrime.gov.in', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2', 'Inspector R. Kumar', '+91 9876543211', 'POLICE_OFFICER', true),
 ('nodal@sbi.co.in', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2', 'Mr. Rajesh Gupta', '+91 9876543213', 'NODAL_OFFICER', true),
-('nodal@hdfc.co.in', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2', 'Ms. Priya Sharma', '+91 9876543214', 'NODAL_OFFICER', true),
 ('victim@example.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2', 'Rajesh Kumar', '+91 9876543212', 'VICTIM', true)
 ON CONFLICT (email) DO NOTHING;
+
+-- Insert sample applications
+INSERT INTO applications (application_id, name, email, phone, role, state, district, police_station, department, designation, experience, reason, status) VALUES
+('APP2025001', 'Inspector Amit Singh', 'police@delhi.gov.in', '+91 9876543214', 'POLICE_OFFICER', 'Delhi', 'Central Delhi', 'Cyber Crime Police Station', 'Delhi Police', 'Inspector', '8 years', 'Want to help cyber fraud victims', 'PENDING'),
+('APP2025002', 'Ms. Priya Sharma', 'nodal@hdfc.co.in', '+91 9876543215', 'NODAL_OFFICER', 'Maharashtra', 'Mumbai', '', 'HDFC Bank', 'Assistant Manager', '5 years', 'Support fraud investigation', 'PENDING')
+ON CONFLICT (application_id) DO NOTHING;
 
 -- Insert sample complaints
 INSERT INTO complaints (complaint_id, victim_name, victim_email, victim_phone, victim_address, victim_state, victim_gender, fraud_type, fraud_amount, fraud_date, fraud_description, bank_name, account_number, transaction_id, status, priority, police_station, district, assigned_officer, cfccrms_id, helpline_1930_id) VALUES

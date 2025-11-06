@@ -18,7 +18,15 @@ export default function Register() {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: ''
+    role: '',
+    state: '',
+    district: '',
+    police_station: '',
+    department: '',
+    designation: '',
+    experience: '',
+    id_card: null as File | null,
+    document: null as File | null
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -35,59 +43,97 @@ export default function Register() {
     e.preventDefault()
     setError('')
 
-    if (!formData.name || !formData.email || !formData.password || !formData.role) {
+    if (!formData.name || !formData.email || !formData.role) {
       setError('Please fill in all required fields')
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
+    if (formData.role === 'VICTIM') {
+      if (!formData.password) {
+        setError('Password is required')
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match')
+        return
+      }
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters')
+        return
+      }
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
+    if (formData.role === 'POLICE_OFFICER') {
+      if (!formData.state || !formData.district || !formData.police_station || !formData.department || !formData.designation || !formData.experience || !formData.password) {
+        setError('Please fill in all required fields for police verification')
+        return
+      }
+      if (!formData.id_card || !formData.document) {
+        setError('Please upload ID card and service document')
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match')
+        return
+      }
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters')
+        return
+      }
     }
 
     setLoading(true)
     try {
-      console.log('Sending registration request:', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role
-      })
-      
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          role: formData.role
+      if (formData.role === 'VICTIM') {
+        // Direct registration for victims
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            role: formData.role
+          })
         })
-      })
 
-      const result = await response.json()
-      console.log('Registration response:', result)
-
-      if (result.success) {
-        // Clear form
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          password: '',
-          confirmPassword: '',
-          role: ''
-        })
-        // Redirect to login with success message
-        router.push('/login?message=Registration successful! Please login with your credentials.')
+        const result = await response.json()
+        if (result.success) {
+          router.push('/login?message=Registration successful! Please login with your credentials.')
+        } else {
+          setError(result.error || 'Registration failed')
+        }
       } else {
-        setError(result.error || 'Registration failed')
+        // Application submission for officers
+        const formDataToSend = new FormData()
+        formDataToSend.append('name', formData.name)
+        formDataToSend.append('email', formData.email)
+        formDataToSend.append('phone', formData.phone)
+        formDataToSend.append('role', formData.role)
+        formDataToSend.append('password', formData.password)
+        formDataToSend.append('state', formData.state)
+        formDataToSend.append('district', formData.district)
+        formDataToSend.append('police_station', formData.police_station)
+        formDataToSend.append('department', formData.department)
+        formDataToSend.append('designation', formData.designation)
+        formDataToSend.append('experience', formData.experience)
+        formDataToSend.append('reason', 'Professional registration request')
+        
+        if (formData.id_card) formDataToSend.append('id_card', formData.id_card)
+        if (formData.document) formDataToSend.append('document', formData.document)
+
+        const response = await fetch('/api/applications', {
+          method: 'POST',
+          body: formDataToSend
+        })
+
+        const result = await response.json()
+        if (result.application) {
+          router.push('/application-status?id=' + result.application.application_id)
+        } else {
+          setError(result.error || 'Application submission failed')
+        }
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -167,32 +213,187 @@ export default function Register() {
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+            {formData.role === 'POLICE_OFFICER' && (
+              <>
+                <div>
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    type="text"
+                    value={formData.state}
+                    onChange={(e) => setFormData({...formData, state: e.target.value})}
+                    placeholder="Enter your state"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="district">District *</Label>
+                  <Input
+                    id="district"
+                    type="text"
+                    value={formData.district}
+                    onChange={(e) => setFormData({...formData, district: e.target.value})}
+                    placeholder="Enter your district"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="police_station">Police Station *</Label>
+                  <Input
+                    id="police_station"
+                    type="text"
+                    value={formData.police_station}
+                    onChange={(e) => setFormData({...formData, police_station: e.target.value})}
+                    placeholder="Enter your police station"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="department">Department *</Label>
+                  <Input
+                    id="department"
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                    placeholder="e.g., Delhi Police, Mumbai Police"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="designation">Designation *</Label>
+                  <Input
+                    id="designation"
+                    type="text"
+                    value={formData.designation}
+                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
+                    placeholder="e.g., Inspector, Sub-Inspector"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="experience">Experience (years) *</Label>
+                  <Input
+                    id="experience"
+                    type="text"
+                    value={formData.experience}
+                    onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                    placeholder="Years of police service"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="id_card">Police ID Card *</Label>
+                  <Input
+                    id="id_card"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setFormData({...formData, id_card: e.target.files?.[0] || null})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="document">Service Certificate/Document *</Label>
+                  <Input
+                    id="document"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setFormData({...formData, document: e.target.files?.[0] || null})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                placeholder="Confirm your password"
-                required
-              />
-            </div>
+            {(formData.role === 'BANK_OFFICER' || formData.role === 'NODAL_OFFICER') && (
+              <>
+                <div>
+                  <Label htmlFor="department">Organization</Label>
+                  <Input
+                    id="department"
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                    placeholder="Enter your organization"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="designation">Designation</Label>
+                  <Input
+                    id="designation"
+                    type="text"
+                    value={formData.designation}
+                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
+                    placeholder="Enter your designation"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="experience">Experience (years)</Label>
+                  <Input
+                    id="experience"
+                    type="text"
+                    value={formData.experience}
+                    onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                    placeholder="Years of experience"
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.role === 'VICTIM' && (
+              <>
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Register'}
+              {loading ? 
+                (formData.role === 'VICTIM' ? 'Creating Account...' : 'Submitting Application...') : 
+                (formData.role === 'VICTIM' ? 'Register' : 'Submit Application')
+              }
             </Button>
 
             <div className="text-center text-sm">
