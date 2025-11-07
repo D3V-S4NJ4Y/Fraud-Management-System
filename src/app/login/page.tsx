@@ -1,133 +1,117 @@
-'use client'
+"use client"
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Shield, AlertCircle } from 'lucide-react'
-import { useAuth } from '@/components/AuthProvider'
-import Link from 'next/link'
 
-function LoginForm() {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-  const { login } = useAuth()
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-
+  
   useEffect(() => {
-    const msg = searchParams.get('message')
-    if (msg) setMessage(msg)
-  }, [searchParams])
+    setMounted(true)
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (result.success) {
-        login(result.user)
-        // Role-based redirection
-        if (result.user.role === 'ADMIN' || result.user.role === 'POLICE_OFFICER' || result.user.role === 'NODAL_OFFICER') {
-          router.push('/admin')
-        } else {
-          router.push('/')
+      if (response.ok) {
+        if (data.status === 'PENDING') {
+          alert('Your application is pending approval. Please wait for admin approval.')
+        } else if (data.status === 'APPROVED') {
+          localStorage.setItem('user', JSON.stringify(data.user))
+          if (data.user.role === 'ADMIN') {
+            router.push('/admin')
+          } else if (data.user.role === 'VICTIM') {
+            router.push('/')
+          } else if (data.user.role === 'POLICE_OFFICER' || data.user.role === 'BANK_OFFICER' || data.user.role === 'NODAL_OFFICER') {
+            router.push('/police')
+          } else {
+            router.push('/welcome')
+          }
+        } else if (data.status === 'REJECTED') {
+          alert('Your application has been rejected. Please contact admin.')
         }
       } else {
-        setError(result.error || 'Login failed')
+        alert(data.error || 'Login failed')
       }
     } catch (error) {
-      setError('Login failed. Please try again.')
+      console.error('Login error:', error)
+      alert('Login failed')
     } finally {
       setLoading(false)
     }
   }
 
+  if (!mounted) {
+    return null
+  }
+
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <div className="flex justify-center mb-4">
-          <Shield className="h-12 w-12 text-blue-600" />
-        </div>
-        <CardTitle className="text-2xl">Login</CardTitle>
-        <CardDescription>Sign in to Cyber Fraud Support System</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {message && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center">Login</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Logging in...' : 'Login'}
+            </Button>
+          </form>
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a href="/register" className="text-blue-600 hover:underline">
+                Register here
+              </a>
+            </p>
           </div>
-
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
-
-          <div className="text-center text-sm">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Register here
-            </Link>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-export default function Login() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Suspense fallback={<div>Loading...</div>}>
-        <LoginForm />
-      </Suspense>
+        </CardContent>
+      </Card>
     </div>
   )
 }

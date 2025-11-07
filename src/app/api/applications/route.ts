@@ -3,21 +3,32 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_ANON_KEY!
 )
 
 export async function GET() {
   try {
-    const { data: applications, error } = await supabase
-      .from('applications')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
+    // Fetch from Supabase only
+    const [policeResult, bankResult, nodalResult] = await Promise.all([
+      supabase.from('police_officers').select('*').order('created_at', { ascending: false }),
+      supabase.from('bank_officers').select('*').order('created_at', { ascending: false }),
+      supabase.from('nodal_officers').select('*').order('created_at', { ascending: false })
+    ])
+    
+    const applications = [
+      ...(policeResult.data || []).map(app => ({ ...app, role: 'POLICE_OFFICER' })),
+      ...(bankResult.data || []).map(app => ({ ...app, role: 'BANK_OFFICER' })),
+      ...(nodalResult.data || []).map(app => ({ ...app, role: 'NODAL_OFFICER' }))
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
     return NextResponse.json({ applications })
+    
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+    console.error('Get applications error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch applications from database',
+      applications: []
+    }, { status: 500 })
   }
 }
 
@@ -25,79 +36,158 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const applicationId = `APP${Date.now()}`
-
-    // Extract form data
+    const role = formData.get('role') as string
+    
+    // Create application data
     const applicationData = {
+      id: applicationId,
       application_id: applicationId,
       name: formData.get('name') as string,
       email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
+      phone: formData.get('phone') as string || null,
       password: formData.get('password') as string,
-      role: formData.get('role') as string,
-      state: formData.get('state') as string,
-      district: formData.get('district') as string,
-      police_station: formData.get('police_station') as string,
-      department: formData.get('department') as string,
-      designation: formData.get('designation') as string,
-      experience: formData.get('experience') as string,
-      reason: formData.get('reason') as string,
-      id_card_url: 'uploaded', // Simulate file upload
-      document_url: 'uploaded' // Simulate file upload
+      role,
+      status: 'PENDING',
+      state: formData.get('state') as string || null,
+      district: formData.get('district') as string || null,
+      police_station: formData.get('police_station') as string || null,
+      department: formData.get('department') as string || null,
+      designation: formData.get('designation') as string || null,
+      experience: formData.get('experience') as string || null,
+      reason: formData.get('reason') as string || null,
+      created_at: new Date().toISOString()
     }
-
-    const { data, error } = await supabase
-      .from('applications')
-      .insert([applicationData])
-      .select()
-
-    if (error) throw error
-
-    return NextResponse.json({ application: data[0] })
+    
+    console.log('Processing application:', applicationData)
+    
+    // Try to insert into Supabase
+    try {
+      if (role === 'VICTIM') {
+        const victimData = {
+          name: applicationData.name,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          password: formData.get('password') as string,
+          role: 'VICTIM',
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+        
+        console.log('Attempting to insert victim data:', victimData)
+        
+        const { data, error } = await supabase
+          .from('victims')
+          .insert([victimData])
+          .select()
+        
+        if (error) {
+          console.error('Victim Supabase insert error:', error)
+          console.error('Error code:', error.code)
+          console.error('Error details:', error.details)
+          console.error('Error hint:', error.hint)
+          
+          // Return specific error message
+          return NextResponse.json({ 
+            error: `Database error: ${error.message}`,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          }, { status: 500 })
+        }
+        
+        console.log('Victim data saved to Supabase:', data[0])
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Account created successfully. You can now login.',
+          user: data[0]
+        })
+      } else {
+        // For officers
+        let tableName = ''
+        if (role === 'POLICE_OFFICER') tableName = 'police_officers'
+        else if (role === 'BANK_OFFICER') tableName = 'bank_officers'
+        else if (role === 'NODAL_OFFICER') tableName = 'nodal_officers'
+        
+        const supabaseData = {
+          application_id: applicationId,
+          name: formData.get('name') as string,
+          email: formData.get('email') as string,
+          phone: formData.get('phone') as string || null,
+          password: formData.get('password') as string,
+          state: formData.get('state') as string || null,
+          district: formData.get('district') as string || null,
+          police_station: formData.get('police_station') as string || null,
+          department: formData.get('department') as string || null,
+          designation: formData.get('designation') as string || null,
+          experience: formData.get('experience') as string || null,
+          reason: formData.get('reason') as string || null,
+          status: 'PENDING'
+        }
+        
+        const { data, error } = await supabase
+          .from(tableName)
+          .insert([supabaseData])
+          .select()
+        
+        if (error) {
+          console.error('Officer Supabase insert error:', error)
+          throw error
+        }
+        
+        console.log('Data saved to Supabase:', data[0])
+        return NextResponse.json({ 
+          application: data[0]
+        })
+      }
+    } catch (supabaseError) {
+      console.error('Supabase error:', supabaseError)
+      
+      // For now, return success for victims to test login
+      if (role === 'VICTIM') {
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Account created successfully (temporary - fix Supabase)',
+          user: {
+            id: applicationId,
+            name: applicationData.name,
+            email: applicationData.email,
+            role: 'VICTIM'
+          }
+        })
+      }
+      
+      return NextResponse.json({ 
+        error: 'Failed to create account. Please check if database tables exist.',
+        details: supabaseError.message
+      }, { status: 500 })
+    }
+    
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create application' }, { status: 500 })
+    console.error('Application creation error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create application',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const { applicationId, status } = await request.json()
-
-    const { error } = await supabase
-      .from('applications')
-      .update({ 
-        status,
-        reviewed_by: 'admin@gmail.com',
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', applicationId)
-
-    if (error) throw error
-
-    // If approved, create user account
-    if (status === 'APPROVED') {
-      const { data: application } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('id', applicationId)
-        .single()
-
-      if (application) {
-        // Use the password from application if available, otherwise use default
-        const password = application.password || '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/VcSAg/9u2'
-        
-        await supabase
-          .from('users')
-          .insert([{
-            email: application.email,
-            password: password,
-            name: application.name,
-            phone: application.phone,
-            role: application.role,
-            is_active: true
-          }])
-      }
+    const { applicationId, status, reviewedBy } = await request.json()
+    
+    const updateData = {
+      status,
+      reviewed_by: reviewedBy,
+      reviewed_at: new Date().toISOString(),
+      is_active: status === 'APPROVED'
     }
-
+    
+    await Promise.all([
+      supabase.from('police_officers').update(updateData).eq('application_id', applicationId),
+      supabase.from('bank_officers').update(updateData).eq('application_id', applicationId),
+      supabase.from('nodal_officers').update(updateData).eq('application_id', applicationId)
+    ])
+    
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })

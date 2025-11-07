@@ -85,24 +85,24 @@ export default function Register() {
     setLoading(true)
     try {
       if (formData.role === 'VICTIM') {
-        // Direct registration for victims
-        const response = await fetch('/api/auth/register', {
+        // Direct registration for victims using applications API
+        const formDataToSend = new FormData()
+        formDataToSend.append('name', formData.name)
+        formDataToSend.append('email', formData.email)
+        formDataToSend.append('phone', formData.phone)
+        formDataToSend.append('password', formData.password)
+        formDataToSend.append('role', formData.role)
+
+        const response = await fetch('/api/applications', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            password: formData.password,
-            role: formData.role
-          })
+          body: formDataToSend
         })
 
         const result = await response.json()
         if (result.success) {
           router.push('/login?message=Registration successful! Please login with your credentials.')
         } else {
-          setError(result.error || 'Registration failed')
+          setError(result.error || result.details || 'Registration failed')
         }
       } else {
         // Application submission for officers
@@ -132,7 +132,12 @@ export default function Register() {
         if (result.application) {
           router.push('/application-status?id=' + result.application.application_id)
         } else {
-          setError(result.error || 'Application submission failed')
+          console.error('Application error:', result)
+          if (result.error && result.error.includes('table does not exist')) {
+            setError('Database setup required. Please contact administrator to create applications table.')
+          } else {
+            setError(result.error || result.details || 'Application submission failed')
+          }
         }
       }
     } catch (error) {
