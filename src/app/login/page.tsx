@@ -42,8 +42,12 @@ export default function LoginPage() {
             router.push('/admin')
           } else if (data.user.role === 'VICTIM') {
             router.push('/')
-          } else if (data.user.role === 'POLICE_OFFICER' || data.user.role === 'BANK_OFFICER' || data.user.role === 'NODAL_OFFICER') {
-            router.push('/police')
+          } else if (data.user.role === 'POLICE_OFFICER') {
+            router.push('/admin')
+          } else if (data.user.role === 'BANK_OFFICER') {
+            router.push('/bank-dashboard')
+          } else if (data.user.role === 'NODAL_OFFICER') {
+            router.push('/nodal-dashboard')
           } else {
             router.push('/welcome')
           }

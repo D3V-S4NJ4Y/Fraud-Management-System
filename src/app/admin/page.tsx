@@ -205,22 +205,22 @@ export default function AdminDashboard() {
           <Button 
             onClick={async () => {
               try {
-                const response = await fetch('/api/create-tables', { method: 'POST' })
+                const response = await fetch('/api/setup-applications', { method: 'POST' })
                 const result = await response.json()
                 if (result.success) {
-                  // Copy SQL to clipboard
-                  navigator.clipboard.writeText(result.sql)
-                  alert('SQL copied to clipboard!\n\nGo to Supabase Dashboard → SQL Editor and paste to create tables')
+                  alert('Database setup completed successfully!')
+                  fetchApplications()
                 } else {
-                  alert('Error getting SQL')
+                  alert(`Setup failed: ${result.message}\n\nError: ${result.error}`)
                 }
               } catch (error) {
-                alert('Error getting SQL')
+                alert('Error setting up database')
               }
             }}
             variant="outline"
+            className="bg-blue-600 text-white hover:bg-blue-700"
           >
-            Create Tables
+            Setup DB
           </Button>
           <Button 
             onClick={async () => {

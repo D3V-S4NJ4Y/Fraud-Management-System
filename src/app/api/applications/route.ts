@@ -108,20 +108,60 @@ export async function POST(request: NextRequest) {
         else if (role === 'BANK_OFFICER') tableName = 'bank_officers'
         else if (role === 'NODAL_OFFICER') tableName = 'nodal_officers'
         
-        const supabaseData = {
+        let supabaseData = {
           application_id: applicationId,
           name: formData.get('name') as string,
           email: formData.get('email') as string,
           phone: formData.get('phone') as string || null,
           password: formData.get('password') as string,
-          state: formData.get('state') as string || null,
-          district: formData.get('district') as string || null,
-          police_station: formData.get('police_station') as string || null,
           department: formData.get('department') as string || null,
           designation: formData.get('designation') as string || null,
           experience: formData.get('experience') as string || null,
           reason: formData.get('reason') as string || null,
           status: 'PENDING'
+        }
+        
+        // Add role-specific fields
+        if (role === 'POLICE_OFFICER') {
+          supabaseData = {
+            ...supabaseData,
+            state: formData.get('state') as string || null,
+            district: formData.get('district') as string || null,
+            police_station: formData.get('police_station') as string || null,
+            id_card_url: formData.get('id_card') ? `uploads/police_ids/${applicationId}_id.jpg` : null,
+            document_url: formData.get('document') ? `uploads/police_docs/${applicationId}_doc.jpg` : null
+          }
+        } else if (role === 'BANK_OFFICER') {
+          supabaseData = {
+            ...supabaseData,
+            bank_name: formData.get('bankName') as string,
+            branch_name: formData.get('branchName') as string,
+            branch_code: formData.get('branchCode') as string,
+            ifsc_code: formData.get('ifscCode') as string,
+            employee_id: formData.get('employeeId') as string,
+            address: formData.get('address') as string,
+            city: formData.get('city') as string,
+            state: formData.get('state') as string,
+            pincode: formData.get('pincode') as string,
+            id_card_url: formData.get('idCard') ? `uploads/bank_ids/${applicationId}_id.jpg` : null,
+            employment_certificate_url: formData.get('employmentCertificate') ? `uploads/bank_certificates/${applicationId}_cert.jpg` : null,
+            bank_authorization_letter_url: formData.get('authorizationLetter') ? `uploads/bank_letters/${applicationId}_letter.jpg` : null
+          }
+        } else if (role === 'NODAL_OFFICER') {
+          supabaseData = {
+            ...supabaseData,
+            organization_name: formData.get('organizationName') as string,
+            organization_type: formData.get('organizationType') as string,
+            employee_id: formData.get('employeeId') as string,
+            office_address: formData.get('officeAddress') as string,
+            city: formData.get('city') as string,
+            state: formData.get('state') as string,
+            pincode: formData.get('pincode') as string,
+            jurisdiction_area: formData.get('jurisdictionArea') as string,
+            id_card_url: formData.get('idCard') ? `uploads/nodal_ids/${applicationId}_id.jpg` : null,
+            appointment_letter_url: formData.get('appointmentLetter') ? `uploads/nodal_appointments/${applicationId}_appointment.jpg` : null,
+            authorization_certificate_url: formData.get('authorizationCertificate') ? `uploads/nodal_certificates/${applicationId}_certificate.jpg` : null
+          }
         }
         
         const { data, error } = await supabase

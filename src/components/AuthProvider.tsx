@@ -85,8 +85,12 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
         router.push('/welcome')
       } else if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Role-based redirection
-        if (user.role === 'ADMIN' || user.role === 'POLICE_OFFICER' || user.role === 'NODAL_OFFICER') {
+        if (user.role === 'ADMIN' || user.role === 'POLICE_OFFICER') {
           router.push('/admin')
+        } else if (user.role === 'BANK_OFFICER') {
+          router.push('/bank-dashboard')
+        } else if (user.role === 'NODAL_OFFICER') {
+          router.push('/nodal-dashboard')
         } else {
           router.push('/')
         }

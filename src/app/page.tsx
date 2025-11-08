@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth, ProtectedRoute } from '@/components/AuthProvider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -108,6 +109,25 @@ function HomeContent() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const { user, logout } = useAuth()
+  const router = useRouter()
+
+  // Redirect non-victims to their respective dashboards
+  useEffect(() => {
+    if (user && mounted) {
+      if (user.role === 'NODAL_OFFICER') {
+        router.push('/nodal-dashboard')
+        return
+      }
+      if (user.role === 'BANK_OFFICER') {
+        router.push('/bank-dashboard')
+        return
+      }
+      if (user.role === 'ADMIN' || user.role === 'POLICE_OFFICER') {
+        router.push('/admin')
+        return
+      }
+    }
+  }, [user, mounted, router])
 
   useEffect(() => {
     setMounted(true)
@@ -362,8 +382,18 @@ function HomeContent() {
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Welcome, {user.name}</span>
                     {(user.role === 'ADMIN' || user.role === 'POLICE_OFFICER' || user.role === 'NODAL_OFFICER') && (
-                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/police'}>
-                        Police Panel
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/admin'}>
+                        Admin Panel
+                      </Button>
+                    )}
+                    {user.role === 'BANK_OFFICER' && (
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/bank-dashboard'}>
+                        Bank Dashboard
+                      </Button>
+                    )}
+                    {user.role === 'NODAL_OFFICER' && (
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = '/nodal-dashboard'}>
+                        Nodal Dashboard
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={logout}>
