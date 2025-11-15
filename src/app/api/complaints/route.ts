@@ -32,9 +32,12 @@ export async function GET(request: NextRequest) {
     let query = supabase.from('complaints').select('*')
     
     // Role-based filtering
+
     if (userRole === 'VICTIM' && userId) {
       // Victims can only see their own complaints
-      query = query.eq('victim_email', searchParams.get('userEmail') || '')
+      const userEmail = searchParams.get('userEmail') || ''
+
+      query = query.eq('victim_email', userEmail)
     }
     // Admin/Police can see all complaints (no additional filter)
     

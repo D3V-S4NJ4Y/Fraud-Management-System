@@ -163,20 +163,67 @@ graph TD
    ```
 
 4. **Database Setup**
+   
+   **Option 1: Automatic Setup (Recommended)**
    ```bash
-   # Access admin panel and click "Setup DB"
-   # Or run SQL scripts manually in Supabase
+   # 1. Start the development server
+   npm run dev
+   
+   # 2. Access admin panel
+   # Go to: http://localhost:3000/admin
+   # Login: admin@gmail.com / admin@123
+   
+   # 3. Click "Setup DB" button
+   # This will automatically create all 7 required tables
+   ```
+   
+   **Option 2: Manual Setup**
+   ```bash
+   # Execute the provided SQL file in your Supabase SQL Editor
+   # File: create-tables.sql (located in project root)
+   
+   # 1. Go to Supabase Dashboard → SQL Editor
+   # 2. Copy content from create-tables.sql file
+   # 3. Paste and run the SQL script
+   # 4. This will create all 7 tables with sample data
+   ```
+   
+   **Database Schema Overview:**
+   ```
+   📊 Database Tables (7 total)
+   ├── 👥 users (Authentication & role management)
+   ├── 📋 complaints (Main fraud case data)
+   ├── 🏦 bank_actions (Financial freeze/unfreeze requests)
+   ├── 💰 refunds (Money recovery tracking)
+   ├── 🔔 notifications (User alerts & updates)
+   ├── 📝 case_updates (Case timeline & history)
+   └── 🏛️ nodal_actions (Inter-bank coordination)
    ```
 
-5. **Start Development Server**
+5. **Verify Database Setup**
+   ```bash
+   # Check if tables are created successfully
+   # Go to Supabase Dashboard → Table Editor
+   # You should see all 7 tables listed
+   ```
+
+6. **Start Development Server**
    ```bash
    npm run dev
    ```
 
-6. **Access the Application**
-   - Main App: http://localhost:3000
-   - Admin Panel: http://localhost:3000/admin
-   - Login: admin@gmail.com / admin@123
+7. **Access the Application**
+   - **Main App**: http://localhost:3000
+   - **Admin Panel**: http://localhost:3000/admin
+   - **Admin Login**: admin@gmail.com / admin@123
+   
+   **Test the System:**
+   ```bash
+   # 1. Register as Victim (immediate access)
+   # 2. Register as Police Officer (requires admin approval)
+   # 3. Login as admin and approve officer applications
+   # 4. Test complaint filing and tracking
+   ```
 
 ---
 
@@ -218,36 +265,39 @@ graph TD
 
 ---
 
-## 🔧 **Current Issues & Solutions**
+## ✅ **System Status**
 
-### **🚨 Known Issues**
+### **🎉 Completed Features**
 
-| Issue | Status | Solution |
-|-------|--------|----------|
-| Service Role Key Invalid | 🔴 Critical | Update Supabase credentials |
-| Database Tables Missing | 🟡 Medium | Run setup scripts |
-| File Upload Not Working | 🟡 Medium | Configure Supabase Storage |
-| Real-time Updates Pending | 🟠 Low | Implement Socket.IO |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| User Authentication | ✅ Complete | Login/Register with role-based access |
+| Complaint Management | ✅ Complete | File, track, and manage complaints |
+| Admin Dashboard | ✅ Complete | Officer application approval system |
+| Database Integration | ✅ Complete | Supabase PostgreSQL with 7 tables |
+| Role-based Filtering | ✅ Complete | Users see only relevant data |
+| Responsive Design | ✅ Complete | Mobile-friendly interface |
 
-### **🛠️ Quick Fixes**
+### **🚀 Quick Start Guide**
 
-1. **Database Setup**
+1. **Setup Environment**
    ```bash
-   # Access admin panel → Click "Setup DB"
-   # This creates all required tables
+   cp .env.example .env
+   # Update .env with your Supabase credentials
    ```
 
-2. **Service Role Key**
+2. **Install & Run**
    ```bash
-   # Update .env with correct Supabase service role key
-   SUPABASE_SERVICE_ROLE_KEY=your_correct_key
+   npm install
+   npm run dev
    ```
 
-3. **Test Registration**
+3. **Access Application**
    ```bash
-   # Try registering as different roles
-   # Victim: Direct access
-   # Officers: Admin approval required
+   # Main App: http://localhost:3000
+   # Admin Login: admin@gmail.com / admin@123
+   # Register as Victim for immediate access
+   # Register as Officer for admin approval workflow
    ```
 
 ---
@@ -310,10 +360,10 @@ graph TD
 
 ### **Current Statistics**
 - **Response Time**: < 2 seconds average
-- **Uptime**: 99.9% availability target
-- **User Capacity**: 10,000+ concurrent users
-- **Data Processing**: Real-time updates
-- **Security**: Zero data breaches
+- **Database**: 7 tables with proper relationships
+- **Authentication**: JWT-based with role filtering
+- **User Roles**: 4 types (Victim, Police, Bank, Nodal)
+- **Security**: Role-based access control implemented
 
 ### **Expected Impact**
 - **Case Resolution**: 40% faster processing

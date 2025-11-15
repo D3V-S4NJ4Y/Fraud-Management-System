@@ -108,22 +108,24 @@ function HomeContent() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const router = useRouter()
+
+  // Remove automatic redirect to welcome - let users access home page
 
   // Redirect non-victims to their respective dashboards
   useEffect(() => {
     if (user && mounted) {
-      if (user.role === 'NODAL_OFFICER') {
-        router.push('/nodal-dashboard')
+      if (user.role === 'ADMIN') {
+        router.push('/admin')
+        return
+      }
+      if (user.role === 'POLICE_OFFICER' || user.role === 'NODAL_OFFICER') {
+        router.push('/police')
         return
       }
       if (user.role === 'BANK_OFFICER') {
         router.push('/bank-dashboard')
-        return
-      }
-      if (user.role === 'ADMIN' || user.role === 'POLICE_OFFICER') {
-        router.push('/admin')
         return
       }
     }
@@ -212,10 +214,12 @@ function HomeContent() {
           userEmail: user.email
         })
         url += `?${params.toString()}`
+
       }
       
       const response = await fetch(url)
       const result = await response.json()
+
       if (result.success) {
         setComplaints(result.data || [])
       }
@@ -228,17 +232,17 @@ function HomeContent() {
   }
 
   useEffect(() => {
-    if (mounted) {
+    if (mounted && !isLoading) {
       fetchComplaints()
     }
-  }, [mounted, user])
+  }, [mounted, user, isLoading])
 
   // Fetch complaints when switching to tracking tab
   useEffect(() => {
-    if (activeTab === 'tracking' && mounted) {
+    if (activeTab === 'tracking' && mounted && !isLoading) {
       fetchComplaints()
     }
-  }, [activeTab, mounted])
+  }, [activeTab, mounted, user, isLoading])
 
 
 
@@ -377,7 +381,7 @@ function HomeContent() {
                 <Mail className="h-4 w-4" />
                 <span>cybercrime@police.gov.in</span>
               </div>
-              {mounted && (
+              {mounted && !isLoading && (
                 user ? (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Welcome, {user.name}</span>
@@ -1230,9 +1234,5 @@ function HomeContent() {
 }
 
 export default function Home() {
-  return (
-    <ProtectedRoute>
-      <HomeContent />
-    </ProtectedRoute>
-  )
+  return <HomeContent />
 }

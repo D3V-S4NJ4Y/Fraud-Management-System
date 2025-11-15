@@ -300,6 +300,7 @@ export default function Register() {
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="Enter your email"
                 required
+                suppressHydrationWarning
               />
             </div>
 

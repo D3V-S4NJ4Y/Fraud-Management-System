@@ -80,23 +80,10 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        router.push('/welcome')
-      } else if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Role-based redirection
-        if (user.role === 'ADMIN' || user.role === 'POLICE_OFFICER') {
-          router.push('/admin')
-        } else if (user.role === 'BANK_OFFICER') {
-          router.push('/bank-dashboard')
-        } else if (user.role === 'NODAL_OFFICER') {
-          router.push('/nodal-dashboard')
-        } else {
-          router.push('/')
-        }
-      }
+    if (!isLoading && !user) {
+      router.push('/welcome')
     }
-  }, [user, isLoading, router, allowedRoles])
+  }, [user, isLoading, router])
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -113,7 +100,13 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
           <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
           <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
           <p className="text-sm text-gray-500 mb-6">Your role: {user.role}</p>
-          <Button onClick={() => router.push('/')}>Go to Home</Button>
+          <Button onClick={() => {
+            if (user.role === 'ADMIN') router.push('/admin')
+            else if (user.role === 'POLICE_OFFICER') router.push('/police')
+            else if (user.role === 'NODAL_OFFICER') router.push('/police')
+            else if (user.role === 'BANK_OFFICER') router.push('/bank-dashboard')
+            else router.push('/')
+          }}>Go to Dashboard</Button>
         </div>
       </div>
     )

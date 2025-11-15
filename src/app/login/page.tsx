@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
   
   useEffect(() => {
     setMounted(true)
@@ -37,20 +39,23 @@ export default function LoginPage() {
         if (data.status === 'PENDING') {
           alert('Your application is pending approval. Please wait for admin approval.')
         } else if (data.status === 'APPROVED') {
-          localStorage.setItem('user', JSON.stringify(data.user))
-          if (data.user.role === 'ADMIN') {
-            router.push('/admin')
-          } else if (data.user.role === 'VICTIM') {
-            router.push('/')
-          } else if (data.user.role === 'POLICE_OFFICER') {
-            router.push('/admin')
-          } else if (data.user.role === 'BANK_OFFICER') {
-            router.push('/bank-dashboard')
-          } else if (data.user.role === 'NODAL_OFFICER') {
-            router.push('/nodal-dashboard')
-          } else {
-            router.push('/welcome')
-          }
+          login(data.user)
+          // Small delay to ensure state is updated before navigation
+          setTimeout(() => {
+            if (data.user.role === 'ADMIN') {
+              router.push('/admin')
+            } else if (data.user.role === 'POLICE_OFFICER') {
+              router.push('/police')
+            } else if (data.user.role === 'NODAL_OFFICER') {
+              router.push('/police')
+            } else if (data.user.role === 'BANK_OFFICER') {
+              router.push('/bank-dashboard')
+            } else if (data.user.role === 'VICTIM') {
+              router.push('/')
+            } else {
+              router.push('/welcome')
+            }
+          }, 100)
         } else if (data.status === 'REJECTED') {
           alert('Your application has been rejected. Please contact admin.')
         }

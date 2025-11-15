@@ -54,9 +54,16 @@ export default function AdminDashboard() {
       const response = await fetch('/api/applications')
       const data = await response.json()
       console.log('Fetched data:', data)
+      
+      if (data.error) {
+        console.error('API Error:', data.error)
+        alert(`Error fetching applications: ${data.error}`)
+      }
+      
       setApplications(data.applications || [])
     } catch (error) {
       console.error('Error fetching applications:', error)
+      alert('Failed to fetch applications. Please check console for details.')
     } finally {
       setLoading(false)
     }
@@ -259,6 +266,24 @@ export default function AdminDashboard() {
             variant="outline"
           >
             Debug Data
+          </Button>
+          <Button 
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/test-service')
+                const result = await response.json()
+                if (result.success) {
+                  alert('Service role key working!')
+                } else {
+                  alert(`Service error: ${result.error}`)
+                }
+              } catch (error) {
+                alert('Test failed')
+              }
+            }}
+            variant="outline"
+          >
+            Test Service
           </Button>
           <Button 
             onClick={() => {

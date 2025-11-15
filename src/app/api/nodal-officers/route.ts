@@ -9,17 +9,18 @@ export async function POST(request: NextRequest) {
     const nodalId = `NO${new Date().getFullYear()}${Date.now().toString().slice(-6)}`
     
     const { data, error } = await supabase
-      .from('nodal_officers')
+      .from('nodal_actions')
       .insert({
-        nodal_id: nodalId,
         complaint_id: complaintId,
+        victim_name: 'Unknown', // Will be updated with actual victim name
+        victim_email: 'unknown@example.com', // Will be updated
+        fraud_amount: 0, // Will be updated
         bank_name: bankName,
-        officer_name: nodalOfficerName,
-        officer_email: nodalOfficerEmail,
-        officer_phone: nodalOfficerPhone,
-        action_required: actionRequired,
-        status: 'ASSIGNED',
-        created_at: new Date().toISOString()
+        coordination_type: 'BANK_COORDINATION',
+        status: 'PENDING',
+        assigned_officer: nodalOfficerName,
+        notes: actionRequired,
+        processed_by: nodalOfficerEmail
       })
       .select()
       .single()
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const complaintId = searchParams.get('complaintId')
     
-    let query = supabase.from('nodal_officers').select('*')
+    let query = supabase.from('nodal_actions').select('*')
     
     if (complaintId) {
       query = query.eq('complaint_id', complaintId)

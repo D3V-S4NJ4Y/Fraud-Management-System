@@ -25,24 +25,37 @@ export async function GET(
       return NextResponse.json({ application: memoryApp })
     }
     
-    // Try to fetch from Supabase tables
+    // Try to fetch from unified users table
     try {
-      const [policeResult, bankResult, nodalResult] = await Promise.all([
-        supabase.from('police_officers').select('*').eq('application_id', applicationId).single(),
-        supabase.from('bank_officers').select('*').eq('application_id', applicationId).single(),
-        supabase.from('nodal_officers').select('*').eq('application_id', applicationId).single()
-      ])
+      // Extract user ID from application ID (remove APP prefix)
+      const userId = applicationId.replace('APP', '')
       
-      let application = null
-      if (policeResult.data) {
-        application = { ...policeResult.data, role: 'POLICE_OFFICER' }
-      } else if (bankResult.data) {
-        application = { ...bankResult.data, role: 'BANK_OFFICER' }
-      } else if (nodalResult.data) {
-        application = { ...nodalResult.data, role: 'NODAL_OFFICER' }
-      }
+      // Find user by matching ID suffix
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .like('id', `%${userId}`)
       
-      if (application) {
+      if (users && users.length > 0) {
+        const user = users[0]
+        const application = {
+          id: user.id,
+          application_id: applicationId,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          status: user.is_active ? 'APPROVED' : 'PENDING',
+          state: user.state,
+          district: user.district,
+          police_station: user.police_station,
+          department: user.department,
+          designation: user.designation,
+          experience: user.experience,
+          bank_name: user.bank_name,
+          organization_name: user.organization_name,
+          created_at: user.created_at
+        }
         return NextResponse.json({ application })
       }
     } catch (supabaseError) {
