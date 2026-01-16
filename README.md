@@ -445,16 +445,4 @@ This project is developed for **Indian Police** and is **not open source**. All 
 
 ---
 
-## 🙏 **Acknowledgments**
-
-- **Indian Police Cyber Crime Division** - Project sponsorship
-- **Ministry of Home Affairs** - Policy support
-- **Reserve Bank of India** - Banking integration
-- **NPCI** - Payment system coordination
-- **Citizens of India** - For whom this system is built
-
----
-
-**Built with ❤️ for the safety and security of Indian citizens**
-
 *© 2024 Government of India - Indian Police Cyber Crime Division*
