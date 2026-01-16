@@ -439,10 +439,4 @@ This is a **Government of India** project developed for Indian Police Cyber Crim
 
 ---
 
-## 📄 **License**
-
-This project is developed for **Indian Police** and is **not open source**. All rights reserved by the Government of India.
-
----
-
 *© 2024 Government of India - Indian Police Cyber Crime Division*
